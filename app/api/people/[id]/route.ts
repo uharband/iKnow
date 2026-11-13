@@ -5,7 +5,7 @@ import { db } from "@/lib/server/db";
 type Ctx = { params: Promise<{ id: string }> };
 
 const text = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
-const RELATIONS = ["child", "grandchild", "great", "inlaw", "other"];
+const RELATIONS = ["spouse", "child", "inlaw", "grandchild", "grandInlaw", "great", "other"];
 
 /** Create or update the descriptive fields of a person. Photos, voice and progress have their own routes. */
 export async function PUT(req: Request, { params }: Ctx) {
@@ -22,6 +22,7 @@ export async function PUT(req: Request, { params }: Ctx) {
     gender: b.gender === "m" ? "m" : "f",
     relation: RELATIONS.includes(b.relation as string) ? b.relation : "other",
     parentIds: Array.isArray(b.parentIds) ? b.parentIds.map((p) => text(p, 64)).filter(Boolean).slice(0, 2) : [],
+    partnerId: text(b.partnerId, 64),
     note: text(b.note, 200),
     noteEn: text(b.noteEn, 200),
   };
@@ -32,6 +33,17 @@ export async function PUT(req: Request, { params }: Ctx) {
      on conflict (id) do update set data = people.data || excluded.data`,
     [id, JSON.stringify(data)],
   );
+  // A couple is linked from both sides, and nobody else keeps a stale link to this person.
+  await pool.query(`update people set data = data - 'partnerId' where data->>'partnerId' = $1 and id <> $2`, [
+    id,
+    data.partnerId,
+  ]);
+  if (data.partnerId) {
+    await pool.query(`update people set data = data || jsonb_build_object('partnerId', $1::text) where id = $2`, [
+      id,
+      data.partnerId,
+    ]);
+  }
   return NextResponse.json({ ok: true });
 }
 
@@ -47,5 +59,6 @@ export async function DELETE(_req: Request, { params }: Ctx) {
      where data->'parentIds' ? $1`,
     [id],
   );
+  await pool.query(`update people set data = data - 'partnerId' where data->>'partnerId' = $1`, [id]);
   return NextResponse.json({ ok: true });
 }

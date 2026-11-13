@@ -1,4 +1,4 @@
-import type { Lang, Person } from "./types";
+import type { Lang, Person, Relation } from "./types";
 
 const he = {
   morning: "בוקר טוב",
@@ -72,20 +72,29 @@ export function displayName(p: Person, lang: Lang): string {
   return lang === "en" ? p.nameEn?.trim() || p.name : p.name;
 }
 
-const REL_HE: Record<string, [string, string]> = {
+const REL_HE: Record<Relation, [string, string]> = {
+  spouse: ["הבעל", "האישה"],
   child: ["הבן", "הבת"],
-  grandchild: ["הנכד", "הנכדה"],
-  great: ["הנין", "הנינה"],
   inlaw: ["החתן", "הכלה"],
+  grandchild: ["הנכד", "הנכדה"],
+  grandInlaw: ["בן זוג של נכדה", "בת זוג של נכד"],
+  great: ["הנין", "הנינה"],
   other: ["קרוב משפחה", "קרובת משפחה"],
 };
-const REL_EN: Record<string, [string, string]> = {
+const REL_EN: Record<Relation, [string, string]> = {
+  spouse: ["husband", "wife"],
   child: ["son", "daughter"],
-  grandchild: ["grandson", "granddaughter"],
-  great: ["great-grandson", "great-granddaughter"],
   inlaw: ["son-in-law", "daughter-in-law"],
+  grandchild: ["grandson", "granddaughter"],
+  grandInlaw: ["grandchild's husband", "grandchild's wife"],
+  great: ["great-grandson", "great-granddaughter"],
   other: ["relative", "relative"],
 };
+
+/** The person's husband, wife or partner, whichever side the link was recorded on. */
+export function partnerOf(p: Person, all: Person[]): Person | undefined {
+  return all.find((x) => x.id === p.partnerId) ?? all.find((x) => x.partnerId === p.id);
+}
 
 /** "הנכדה" / "Granddaughter", used as a short label. */
 export function relationLabel(p: Person, lang: Lang): string {
@@ -97,11 +106,36 @@ export function relationLabel(p: Person, lang: Lang): string {
   return REL_HE[p.relation][i];
 }
 
-/** "הנכדה שלך" / "Your granddaughter". */
-export function relationPhrase(p: Person, lang: Lang): string {
-  const i = p.gender === "f" ? 1 : 0;
+/** "הנכדה שלך" / "Your granddaughter"; "בעלך" / "Your husband"; "בן הזוג של הנכדה שלך". */
+export function relationPhrase(p: Person, all: Person[], lang: Lang): string {
+  const f = p.gender === "f";
+  const i = f ? 1 : 0;
+  if (p.relation === "spouse") {
+    if (lang === "en") return `Your ${REL_EN.spouse[i]}`;
+    return f ? "אשתך" : "בעלך";
+  }
+  if (p.relation === "grandInlaw") {
+    // Described through the grandchild they are with, when we know who that is.
+    const partner = partnerOf(p, all);
+    if (lang === "en") {
+      const whose = partner ? (partner.gender === "f" ? "granddaughter" : "grandson") : "grandchild";
+      return `Your ${whose}'s ${f ? "wife" : "husband"}`;
+    }
+    const whose = partner ? (partner.gender === "f" ? "הנכדה שלך" : "הנכד שלך") : "אחד הנכדים שלך";
+    return `${f ? "בת הזוג" : "בן הזוג"} של ${whose}`;
+  }
   if (lang === "en") return `Your ${REL_EN[p.relation][i]}`;
   return `${REL_HE[p.relation][i]} שלך`;
+}
+
+/** "בן הזוג של מיכל" / "Michal's husband". Null when no partner is recorded, or the partner is the player's own spouse line. */
+export function partnerPhrase(p: Person, all: Person[], lang: Lang): string | null {
+  if (p.relation === "spouse") return null;
+  const partner = partnerOf(p, all);
+  if (!partner) return null;
+  const name = displayName(partner, lang);
+  if (lang === "en") return `${name}’s ${p.gender === "f" ? "wife" : "husband"}`;
+  return `${p.gender === "f" ? "בת הזוג" : "בן הזוג"} של ${name}`;
 }
 
 /** "הבת של מיכל ודני" / "Michal and Danny's daughter". Null when no parents are known. */

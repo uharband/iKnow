@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Frame, Icon } from "@/components/ui";
 import { applyOutcome, buildRound, optionsFor, type Outcome } from "@/lib/game";
-import { displayName, parentPhrase, relationPhrase, t, thisIs, whoQuestion } from "@/lib/i18n";
+import { displayName, parentPhrase, partnerPhrase, relationPhrase, t, thisIs, whoQuestion } from "@/lib/i18n";
 import { judgeSpoken } from "@/lib/match";
 import { canListen, chime, listenOnce, playBlob, speak } from "@/lib/speech";
 import { loadVoice, playerName, useFamily, useSettings } from "@/lib/store";
@@ -61,7 +61,12 @@ export default function Play() {
   const hintList = useMemo(() => {
     if (!target || !people) return [];
     const name = displayName(target, lang);
-    return [relationPhrase(target, lang), parentPhrase(target, people, lang), s.startsWith(name[0])].filter(
+    return [
+      relationPhrase(target, people, lang),
+      parentPhrase(target, people, lang),
+      partnerPhrase(target, people, lang),
+      s.startsWith(name[0]),
+    ].filter(
       (x): x is string => !!x,
     );
   }, [target, people, lang, s]);
@@ -89,7 +94,7 @@ export default function Play() {
       if (!settings.sound) return;
       if (outcome !== "revealed") chime();
       const voice = target.hasVoice ? await loadVoice(target).catch(() => undefined) : undefined;
-      const line = `${outcome === "revealed" ? "" : s.correct + ". "}${thisIs(target, lang)}, ${relationPhrase(target, lang)}.`;
+      const line = `${outcome === "revealed" ? "" : s.correct + ". "}${thisIs(target, lang)}, ${relationPhrase(target, people, lang)}.`;
       setTimeout(() => (voice ? playBlob(voice) : speak(line, lang)), outcome === "revealed" ? 100 : 700);
     },
     [target, people, answered, recordProgress, index, settings.sound, s, lang],
@@ -183,7 +188,11 @@ export default function Play() {
 
   const name = displayName(target, lang);
   const note = lang === "en" ? target.noteEn || "" : target.note || "";
-  const parents = parentPhrase(target, people, lang);
+  const facts = [
+    relationPhrase(target, people, lang),
+    parentPhrase(target, people, lang),
+    partnerPhrase(target, people, lang),
+  ].filter(Boolean);
 
   return (
     <main className="play">
@@ -267,8 +276,7 @@ export default function Play() {
             <h1 className="name">{answered === "revealed" ? thisIs(target, lang) : name}</h1>
             <div className="rule draw" />
             <p className="relation">
-              {relationPhrase(target, lang)}
-              {parents ? ` · ${parents}` : ""}
+              {facts.join(" · ")}
             </p>
             {note && <p className="note">{note}</p>}
             <button className="btn primary xl" onClick={() => setIndex(index + 1)} autoFocus>

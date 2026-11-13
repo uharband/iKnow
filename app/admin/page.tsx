@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon, LangToggle } from "@/components/ui";
-import { displayName, relationLabel } from "@/lib/i18n";
+import { displayName, partnerOf, relationLabel } from "@/lib/i18n";
 import { playBlob } from "@/lib/speech";
 import { loadVoice, useFamily, useSettings, type VoiceChange } from "@/lib/store";
 import type { Gender, Lang, Person, Relation } from "@/lib/types";
@@ -25,7 +25,16 @@ const A = {
     f: "אישה",
     m: "גבר",
     relation: "הקשר אליה",
-    rel: { child: "בן / בת", grandchild: "נכד / נכדה", great: "נין / נינה", inlaw: "חתן / כלה", other: "אחר" },
+    rel: {
+      spouse: "בעל / אישה (סבא)",
+      child: "בן / בת",
+      inlaw: "חתן / כלה (בן או בת זוג של ילד)",
+      grandchild: "נכד / נכדה",
+      grandInlaw: "בן / בת זוג של נכד או נכדה",
+      great: "נין / נינה",
+      other: "אחר",
+    },
+    partner: "בן / בת הזוג",
     parents: "הורים (לרמז ״הבת של…״)",
     none: "ללא",
     note: "משפט קצר עליו/עליה (עברית)",
@@ -66,7 +75,16 @@ const A = {
     f: "Woman",
     m: "Man",
     relation: "Relation to her",
-    rel: { child: "Son / daughter", grandchild: "Grandchild", great: "Great-grandchild", inlaw: "Son / daughter-in-law", other: "Other" },
+    rel: {
+      spouse: "Husband / wife (Grandpa)",
+      child: "Son / daughter",
+      inlaw: "Son / daughter-in-law",
+      grandchild: "Grandchild",
+      grandInlaw: "Grandchild's husband / wife",
+      great: "Great-grandchild",
+      other: "Other",
+    },
+    partner: "Husband / wife / partner",
     parents: "Parents (for the “daughter of…” hint)",
     none: "None",
     note: "A short line about them (Hebrew)",
@@ -400,6 +418,21 @@ function Editor({
               {parentSelect(1)}
             </div>
           </div>
+          <label className="field">
+            <span>{a.partner}</span>
+            <select
+              value={partnerOf(p, people)?.id ?? ""}
+              disabled={p.relation === "spouse"}
+              onChange={(e) => set({ partnerId: e.target.value || undefined })}
+            >
+              <option value="">{a.none}</option>
+              {others.map((x) => (
+                <option key={x.id} value={x.id}>
+                  {displayName(x, lang)}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="field">
             <span>{a.nick}</span>
             <input value={nick} onChange={(e) => setNick(e.target.value)} />

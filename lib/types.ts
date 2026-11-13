@@ -1,5 +1,9 @@
 export type Gender = "f" | "m";
-export type Relation = "child" | "grandchild" | "great" | "inlaw" | "other";
+/**
+ * Relation to the player: her husband/wife, a child, a child's partner, a grandchild,
+ * a grandchild's partner, a great-grandchild, or anyone else.
+ */
+export type Relation = "spouse" | "child" | "inlaw" | "grandchild" | "grandInlaw" | "great" | "other";
 export type Lang = "he" | "en";
 
 export interface Person {
@@ -14,6 +18,8 @@ export interface Person {
   relation: Relation;
   /** Up to two parents, by id, used for the "daughter of ..." hint. */
   parentIds: string[];
+  /** Husband, wife or partner, by id. Recorded on one side is enough; it is read both ways. */
+  partnerId?: string;
   /** Photos as data URLs (resized in the browser). */
   photos: string[];
   note?: string;

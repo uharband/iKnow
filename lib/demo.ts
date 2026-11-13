@@ -74,11 +74,12 @@ const row = (
 
 /** A fictional family, so the game can be tried before real photos are added. */
 export function demoFamily(): Person[] {
-  return [
+  const family = [
+    row("d-yaakov", "יעקב", "Yaakov", "m", "spouse", [], { bg: "#C8C2B4", skin: SKIN[1], hair: "#D8D8D4", style: "short", shirt: "#3A4A5C", glasses: true }, "סבא", "Grandpa"),
     row("d-michal", "מיכל", "Michal", "f", "child", [], { bg: "#B9C4C0", skin: SKIN[0], hair: "#5A4634", style: "bob", shirt: "#2F4A3F" }, "גרה בחיפה, מורה למוזיקה", "Lives in Haifa, a music teacher"),
     row("d-danny", "דני", "Danny", "m", "child", [], { bg: "#C9BFAE", skin: SKIN[1], hair: "#8A8A88", style: "short", shirt: "#1E2638", glasses: true }, "מהנדס, אוהב לטייל", "An engineer who loves hiking"),
     row("d-ronit", "רונית", "Ronit", "f", "child", [], { bg: "#D4C2B4", skin: SKIN[2], hair: "#3B2A22", style: "long", shirt: "#7A3E3A" }, "רופאת ילדים", "A pediatrician"),
-    row("d-avi", "אבי", "Avi", "m", "inlaw", [], { bg: "#BCC3CE", skin: SKIN[1], hair: "#4A4A4A", style: "bald", shirt: "#5B6472", beard: true }, "בעלה של מיכל", "Michal's husband"),
+    row("d-avi", "אבי", "Avi", "m", "inlaw", [], { bg: "#BCC3CE", skin: SKIN[1], hair: "#4A4A4A", style: "bald", shirt: "#5B6472", beard: true }, "אוהב לבשל", "Loves to cook"),
     row("d-noa", "נועה", "Noa", "f", "grandchild", ["d-michal", "d-avi"], { bg: "#C7CDB8", skin: SKIN[0], hair: "#2B211C", style: "curly", shirt: "#A9824C" }, "אדריכלית, אמא של אורי ומאיה", "An architect, mother of Ori and Maya"),
     row("d-yoav", "יואב", "Yoav", "m", "grandchild", ["d-michal", "d-avi"], { bg: "#B7C2CC", skin: SKIN[0], hair: "#3A2C22", style: "short", shirt: "#3F5C7A", beard: true }, "לומד רפואה בירושלים", "Studying medicine in Jerusalem"),
     row("d-tamar", "תמר", "Tamar", "f", "grandchild", ["d-danny"], { bg: "#D8CBB0", skin: SKIN[3], hair: "#6B3F2A", style: "bun", shirt: "#2F4A3F", glasses: true }, "עורכת דין, אמא של איתי", "A lawyer, mother of Itai"),
@@ -88,4 +89,10 @@ export function demoFamily(): Person[] {
     row("d-maya", "מאיה", "Maya", "f", "great", ["d-noa"], { bg: "#DCCFC0", skin: SKIN[0], hair: "#2B211C", style: "bob", shirt: "#8C5A7A" }, "בת ארבע, אוהבת לצייר", "Four years old, loves to draw"),
     row("d-itai", "איתי", "Itai", "m", "great", ["d-tamar"], { bg: "#C4CBD6", skin: SKIN[3], hair: "#3A2418", style: "curly", shirt: "#2F6A5C" }, "בן שנתיים", "Two years old"),
   ];
+  const couple = (a: string, b: string) => {
+    family.find((p) => p.id === a)!.partnerId = b;
+    family.find((p) => p.id === b)!.partnerId = a;
+  };
+  couple("d-michal", "d-avi");
+  return family;
 }
