@@ -5,13 +5,14 @@ import { useEffect, useRef, useState } from "react";
 import { Icon, LangToggle } from "@/components/ui";
 import { displayName, relationLabel } from "@/lib/i18n";
 import { playBlob } from "@/lib/speech";
-import { deleteVoice, loadVoice, saveVoice, useFamily, useSettings } from "@/lib/store";
+import { loadVoice, useFamily, useSettings, type VoiceChange } from "@/lib/store";
 import type { Gender, Lang, Person, Relation } from "@/lib/types";
 
 const A = {
   he: {
     title: "המשפחה",
     back: "חזרה",
+    signOut: "יציאה",
     add: "הוספת בן משפחה",
     local: "בגרסה הזו התמונות והשמות נשמרים רק במכשיר הזה.",
     demo: "זו משפחה לדוגמה, כדי שאפשר יהיה לנסות את המשחק. אפשר להסיר אותה ולהוסיף את המשפחה שלכם.",
@@ -33,6 +34,10 @@ const A = {
     addPhoto: "הוספת תמונה",
     voice: "ברכה קולית (״היי סבתא, זה אני…״)",
     record: "הקלטה",
+    importVoice: "ייבוא קובץ הקלטה",
+    voiceTooBig: "קובץ ההקלטה גדול מדי (עד 4MB). ברכה קצרה מספיקה.",
+    saving: "שומר…",
+    saveFailed: "השמירה לא הצליחה. כדאי לנסות שוב.",
     stop: "עצירה",
     listen: "השמעה",
     removeVoice: "מחיקת ההקלטה",
@@ -48,6 +53,7 @@ const A = {
   en: {
     title: "The family",
     back: "Back",
+    signOut: "Sign out",
     add: "Add a family member",
     local: "In this version, photos and names are stored on this device only.",
     demo: "This is a sample family so you can try the game. You can remove it and add your own.",
@@ -69,6 +75,10 @@ const A = {
     addPhoto: "Add a photo",
     voice: "Voice greeting (“Hi Grandma, it's me…”)",
     record: "Record",
+    importVoice: "Import a recording",
+    voiceTooBig: "The recording is too large (up to 4MB). A short greeting is enough.",
+    saving: "Saving…",
+    saveFailed: "Saving did not work. Please try again.",
     stop: "Stop",
     listen: "Play",
     removeVoice: "Delete recording",
@@ -82,6 +92,8 @@ const A = {
     noPhoto: "No photo",
   },
 } as const;
+
+const MAX_VOICE_BYTES = 4 * 1024 * 1024;
 
 const blank = (): Person => ({
   id: crypto.randomUUID(),
@@ -120,7 +132,7 @@ async function toPortrait(file: File): Promise<string> {
 
 export default function Admin() {
   const { settings, update: updateSettings } = useSettings();
-  const { people, update } = useFamily();
+  const { people, mode, savePerson, removePerson, removeDemo } = useFamily();
   const [editing, setEditing] = useState<Person | null>(null);
   const lang = settings.lang;
   const a = A[lang];
@@ -128,27 +140,15 @@ export default function Admin() {
   if (!people) return <main className="admin" />;
   const hasDemo = people.some((p) => p.demo);
 
-  const save = async (p: Person, voice: Blob | null | undefined) => {
-    if (voice) await saveVoice(p.id, voice);
-    if (voice === null) await deleteVoice(p.id);
-    const exists = people.some((x) => x.id === p.id);
-    await update(exists ? people.map((x) => (x.id === p.id ? p : x)) : [...people, p]);
+  const save = async (p: Person, voice: VoiceChange) => {
+    await savePerson(p, voice);
     setEditing(null);
   };
 
   const remove = async (p: Person) => {
     if (!confirm(`${a.confirmDel} ${displayName(p, lang)}?`)) return;
-    await deleteVoice(p.id);
-    await update(
-      people.filter((x) => x.id !== p.id).map((x) => ({ ...x, parentIds: x.parentIds.filter((id) => id !== p.id) })),
-    );
+    await removePerson(p.id);
     setEditing(null);
-  };
-
-  const removeDemo = async () => {
-    const keep = people.filter((p) => !p.demo);
-    const ids = new Set(keep.map((p) => p.id));
-    await update(keep.map((p) => ({ ...p, parentIds: p.parentIds.filter((id) => ids.has(id)) })));
   };
 
   return (
@@ -157,7 +157,20 @@ export default function Admin() {
         <Link href="/" className="quiet">
           {a.back}
         </Link>
-        <LangToggle lang={lang} onChange={(l) => updateSettings({ lang: l })} />
+        <div className="row">
+          {mode === "cloud" && (
+            <button
+              className="quiet"
+              onClick={async () => {
+                await fetch("/api/login", { method: "DELETE" });
+                location.href = "/login";
+              }}
+            >
+              {a.signOut}
+            </button>
+          )}
+          <LangToggle lang={lang} onChange={(l) => updateSettings({ lang: l })} />
+        </div>
       </header>
 
       <div className="adminhead">
@@ -168,7 +181,7 @@ export default function Admin() {
         </button>
       </div>
 
-      <p className="notice">{a.local}</p>
+      {mode === "local" && <p className="notice">{a.local}</p>}
       {hasDemo && (
         <p className="notice">
           {a.demo}{" "}
@@ -230,15 +243,16 @@ function Editor({
   people: Person[];
   lang: Lang;
   isNew: boolean;
-  onSave: (p: Person, voice: Blob | null | undefined) => void;
-  onDelete: (p: Person) => void;
+  onSave: (p: Person, voice: VoiceChange) => Promise<void>;
+  onDelete: (p: Person) => Promise<void>;
   onClose: () => void;
 }) {
   const a = A[lang];
   const [p, setP] = useState<Person>(person);
   const [nick, setNick] = useState(person.nicknames.join(", "));
   // undefined = unchanged, null = removed, Blob = newly recorded
-  const [voice, setVoice] = useState<Blob | null | undefined>(undefined);
+  const [voice, setVoice] = useState<VoiceChange>(undefined);
+  const [saving, setSaving] = useState(false);
   const [recording, setRecording] = useState(false);
   const [error, setError] = useState("");
   const recorder = useRef<MediaRecorder | null>(null);
@@ -286,26 +300,43 @@ function Editor({
   };
 
   const listen = async () => {
-    const blob = voice ?? (await loadVoice(p.id));
+    const blob = voice ?? (await loadVoice(person).catch(() => undefined));
     if (blob) playBlob(blob);
   };
 
-  const submit = () => {
+  const importVoice = (file: File | undefined) => {
+    if (!file) return;
+    if (file.size > MAX_VOICE_BYTES) {
+      setError(a.voiceTooBig);
+      return;
+    }
+    setError("");
+    setVoice(file);
+  };
+
+  const submit = async () => {
     if (!p.name.trim()) {
       setError(a.needName);
       return;
     }
-    onSave(
-      {
-        ...p,
-        name: p.name.trim(),
-        nameEn: p.nameEn?.trim(),
-        nicknames: nick.split(",").map((x) => x.trim()).filter(Boolean),
-        hasVoice,
-        demo: false,
-      },
-      voice,
-    );
+    setError("");
+    setSaving(true);
+    try {
+      await onSave(
+        {
+          ...p,
+          name: p.name.trim(),
+          nameEn: p.nameEn?.trim(),
+          nicknames: nick.split(",").map((x) => x.trim()).filter(Boolean),
+          hasVoice,
+          demo: false,
+        },
+        voice,
+      );
+    } catch {
+      setError(a.saveFailed);
+      setSaving(false);
+    }
   };
 
   const parentSelect = (slot: 0 | 1) => (
@@ -413,6 +444,21 @@ function Editor({
               <Icon name="mic" />
               {recording ? a.stop : a.record}
             </button>
+            {!recording && (
+              <label className="btn tool">
+                <Icon name="upload" />
+                {a.importVoice}
+                <input
+                  type="file"
+                  accept="audio/*,.opus,.ogg,.oga,.m4a,.mp3,.wav,.aac,.amr,.webm"
+                  hidden
+                  onChange={(e) => {
+                    importVoice(e.target.files?.[0]);
+                    e.target.value = "";
+                  }}
+                />
+              </label>
+            )}
             {hasVoice && !recording && (
               <>
                 <button className="btn tool" onClick={listen}>
@@ -430,8 +476,8 @@ function Editor({
         {error && <p className="msg">{error}</p>}
 
         <div className="sheetfoot">
-          <button className="btn primary" onClick={submit}>
-            {a.save}
+          <button className="btn primary" onClick={submit} disabled={saving}>
+            {saving ? a.saving : a.save}
           </button>
           <button className="btn ghost" onClick={onClose}>
             {a.cancel}

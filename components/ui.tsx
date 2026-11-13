@@ -50,6 +50,7 @@ const paths: Record<string, React.ReactNode> = {
     </>
   ),
   play: <path d="M8 5v14l11-7z" />,
+  upload: <path d="M12 16V4M7 9l5-5 5 5M5 20h14" />,
   check: <path d="M5 12.500l4.500 4.500L19 7.500" />,
   plus: <path d="M12 5v14M5 12h14" />,
   close: <path d="M6 6l12 12M18 6L6 18" />,

@@ -14,7 +14,7 @@ const ROUND_SIZE = 6;
 
 export default function Play() {
   const { settings, update: updateSettings } = useSettings();
-  const { people, update } = useFamily();
+  const { people, recordProgress } = useFamily();
   const lang = settings.lang;
   const s = t(lang);
 
@@ -73,7 +73,7 @@ export default function Play() {
       setAnswered(outcome);
       setMessage(null);
       setMet((m) => (m.some((p) => p.id === target.id) ? m : [...m, target]));
-      update(people.map((p) => (p.id === target.id ? applyOutcome(p, outcome) : p)));
+      recordProgress(applyOutcome(people.find((p) => p.id === target.id) ?? target, outcome));
 
       // Spaced retrieval: a face that needed help comes back once, a little later in the round.
       if (outcome !== "clean" && !repeated.current.has(target.id)) {
@@ -88,11 +88,11 @@ export default function Play() {
 
       if (!settings.sound) return;
       if (outcome !== "revealed") chime();
-      const voice = target.hasVoice ? await loadVoice(target.id) : undefined;
+      const voice = target.hasVoice ? await loadVoice(target).catch(() => undefined) : undefined;
       const line = `${outcome === "revealed" ? "" : s.correct + ". "}${thisIs(target, lang)}, ${relationPhrase(target, lang)}.`;
       setTimeout(() => (voice ? playBlob(voice) : speak(line, lang)), outcome === "revealed" ? 100 : 700);
     },
-    [target, people, answered, update, index, settings.sound, s, lang],
+    [target, people, answered, recordProgress, index, settings.sound, s, lang],
   );
 
   const choose = (p: Person) => {
@@ -137,7 +137,7 @@ export default function Play() {
 
   const playVoice = async () => {
     if (!target) return;
-    const voice = await loadVoice(target.id);
+    const voice = await loadVoice(target).catch(() => undefined);
     if (voice) playBlob(voice);
   };
 

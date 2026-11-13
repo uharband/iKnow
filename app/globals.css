@@ -762,3 +762,32 @@ main {
     font-size: 26px;
   }
 }
+
+/* ---------- sign in ---------- */
+
+.loginbox {
+  margin: auto;
+  width: min(460px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.loginbox h1 {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 56px;
+}
+.loginbox .rule {
+  margin: 0;
+}
+.loginbox .lead {
+  font-size: 20px;
+}
+.loginbox .field input {
+  min-height: 60px;
+  font-size: 22px;
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
