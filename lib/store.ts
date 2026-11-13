@@ -121,7 +121,15 @@ export function useFamily() {
       if (mode === "local") {
         if (voice) await set(voiceKey(p.id), voice);
         if (voice === null) await del(voiceKey(p.id));
-        await saveLocal(before ? list.map((x) => (x.id === p.id ? p : x)) : [...list, p]);
+        const merged = before ? list.map((x) => (x.id === p.id ? p : x)) : [...list, p];
+        // A couple is linked from both sides, and nobody else keeps a stale link to this person.
+        await saveLocal(
+          merged.map((x) => {
+            if (x.id === p.id) return x;
+            if (x.id === p.partnerId) return { ...x, partnerId: p.id };
+            return x.partnerId === p.id ? { ...x, partnerId: undefined } : x;
+          }),
+        );
         return;
       }
       // Photos travel separately as files, never inside the JSON.
@@ -157,7 +165,13 @@ export function useFamily() {
       if (mode === "local") {
         await del(voiceKey(id));
         await saveLocal(
-          (people ?? []).filter((x) => x.id !== id).map((x) => ({ ...x, parentIds: x.parentIds.filter((y) => y !== id) })),
+          (people ?? [])
+            .filter((x) => x.id !== id)
+            .map((x) => ({
+              ...x,
+              parentIds: x.parentIds.filter((y) => y !== id),
+              partnerId: x.partnerId === id ? undefined : x.partnerId,
+            })),
         );
         return;
       }
@@ -171,7 +185,13 @@ export function useFamily() {
   const removeDemo = useCallback(async () => {
     const keep = (people ?? []).filter((p) => !p.demo);
     const ids = new Set(keep.map((p) => p.id));
-    await saveLocal(keep.map((p) => ({ ...p, parentIds: p.parentIds.filter((id) => ids.has(id)) })));
+    await saveLocal(
+      keep.map((p) => ({
+        ...p,
+        parentIds: p.parentIds.filter((id) => ids.has(id)),
+        partnerId: p.partnerId && ids.has(p.partnerId) ? p.partnerId : undefined,
+      })),
+    );
   }, [people, saveLocal]);
 
   /** Store the quiet progress of one person after a card. Never blocks the game. */
