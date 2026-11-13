@@ -19,6 +19,8 @@ export interface Person {
   note?: string;
   noteEn?: string;
   hasVoice?: boolean;
+  /** Set when the greeting lives in the shared database. */
+  voiceUrl?: string;
   /** Quiet confidence level 0..3, never shown to the player. */
   level: number;
   seen: number;
