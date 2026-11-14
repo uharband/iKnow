@@ -26,6 +26,23 @@ create table if not exists settings (
   key text primary key,
   value jsonb not null
 );
+create table if not exists links (
+  person_id text primary key references people(id) on delete cascade,
+  token text not null unique,
+  created_at timestamptz not null default now()
+);
+create table if not exists messages (
+  id text primary key,
+  person_id text not null references people(id) on delete cascade,
+  from_player boolean not null,
+  kind text not null check (kind in ('text', 'voice')),
+  body text,
+  mime text,
+  bytes bytea,
+  created_at timestamptz not null default now(),
+  read_at timestamptz
+);
+create index if not exists messages_person on messages(person_id, created_at);
 `;
 
 /** A small shared pool; the tables are created on first use so there is no setup step. */

@@ -43,7 +43,7 @@ const toLogin = () => {
   if (location.pathname !== "/login") location.replace("/login");
 };
 
-async function api(path: string, init?: RequestInit): Promise<Response> {
+export async function api(path: string, init?: RequestInit): Promise<Response> {
   const res = await fetch(path, init);
   if (res.status === 401) {
     toLogin();
@@ -52,7 +52,7 @@ async function api(path: string, init?: RequestInit): Promise<Response> {
   if (!res.ok) throw new Error(`${path}: ${res.status}`);
   return res;
 }
-const json = (method: string, body: unknown): RequestInit => ({
+export const json = (method: string, body: unknown): RequestInit => ({
   method,
   headers: { "Content-Type": "application/json" },
   body: JSON.stringify(body),
@@ -230,7 +230,8 @@ export function useSettings() {
     setSettings((s) => ({ ...s, ...local }));
     setReady(true);
     // What she is called is shared between devices; language and sound stay per device.
-    if (location.pathname !== "/login") {
+    // A family member's personal page has no sign-in and must never be sent to one.
+    if (location.pathname !== "/login" && !location.pathname.startsWith("/me/")) {
       loadFamily()
         .then((loaded) => {
           if (loaded?.mode === "cloud") setSettings((s) => ({ ...s, ...loaded.family.settings }));

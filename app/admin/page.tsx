@@ -6,8 +6,9 @@ import { Icon, LangToggle } from "@/components/ui";
 import { HARD_THRESHOLD } from "@/lib/game";
 import { displayName, partnerOf, relationLabel } from "@/lib/i18n";
 import { buildTree } from "@/lib/tree";
+import { toPortrait } from "@/lib/photo";
 import { playBlob } from "@/lib/speech";
-import { loadVoice, useFamily, useSettings, type VoiceChange } from "@/lib/store";
+import { api, loadVoice, playerName, useFamily, useSettings, type Mode, type VoiceChange } from "@/lib/store";
 import type { Gender, Lang, Person, Relation } from "@/lib/types";
 
 const A = {
@@ -15,6 +16,15 @@ const A = {
     title: "המשפחה",
     back: "חזרה",
     signOut: "יציאה",
+    conversations: "שיחות",
+    link: "קישור אישי",
+    linkHelp: "דרך הקישור בן המשפחה שולח הודעות לסבתא ומעדכן את התמונות והפרטים שלו, בלי סיסמה.",
+    linkMake: "יצירת קישור",
+    linkCopy: "העתקה",
+    linkCopied: "הועתק",
+    linkWhatsApp: "שליחה ב-WhatsApp",
+    linkReset: "החלפת הקישור (הישן יפסיק לעבוד)",
+    linkText: (n: string, player: string, url: string) => `היי ${n}, זה הקישור האישי שלך ל-iKnow. דרכו אפשר לשלוח הודעות ל${player} ולעדכן את התמונות שלך: ${url}`,
     hard: "כדאי לחזק",
     hardNote: "הסימון ״כדאי לחזק״ מופיע ליד מי שהיה קשה יותר לזהות לאחרונה. המשחק מציג אותם מעט יותר.",
     notInTree: "לא מופיעים במשחק עץ המשפחה, כי לא הוגדרו להם הורים או בן זוג:",
@@ -68,6 +78,15 @@ const A = {
     title: "The family",
     back: "Back",
     signOut: "Sign out",
+    conversations: "Conversations",
+    link: "Personal link",
+    linkHelp: "With this link the family member sends messages to Grandma and updates their own photos and details, without a password.",
+    linkMake: "Create link",
+    linkCopy: "Copy",
+    linkCopied: "Copied",
+    linkWhatsApp: "Send by WhatsApp",
+    linkReset: "Replace the link (the old one stops working)",
+    linkText: (n: string, player: string, url: string) => `Hi ${n}, this is your personal iKnow link. Use it to send messages to ${player} and to update your photos: ${url}`,
     hard: "Worth reinforcing",
     hardNote: "“Worth reinforcing” marks people who were harder to recognise lately. The game shows them a little more often.",
     notInTree: "Not shown in the family tree game, because no parents or partner are set:",
@@ -136,26 +155,6 @@ const blank = (): Person => ({
   seen: 0,
 });
 
-/** Shrink a photo in the browser to a 4:5 portrait of at most 720px wide. */
-async function toPortrait(file: File): Promise<string> {
-  const bmp = await createImageBitmap(file, { imageOrientation: "from-image" } as ImageBitmapOptions);
-  const ratio = 4 / 5;
-  let sw = bmp.width;
-  let sh = bmp.height;
-  if (sw / sh > ratio) sw = sh * ratio;
-  else sh = sw / ratio;
-  const w = Math.min(720, Math.round(sw));
-  const h = Math.round(w / ratio);
-  const c = document.createElement("canvas");
-  c.width = w;
-  c.height = h;
-  // Keep the crop slightly above centre, where faces usually are.
-  const sx = (bmp.width - sw) / 2;
-  const sy = (bmp.height - sh) * 0.35;
-  c.getContext("2d")!.drawImage(bmp, sx, sy, sw, sh, 0, 0, w, h);
-  return c.toDataURL("image/jpeg", 0.84);
-}
-
 export default function Admin() {
   const { settings, update: updateSettings } = useSettings();
   const { people, mode, savePerson, removePerson, removeDemo } = useFamily();
@@ -195,6 +194,11 @@ export default function Admin() {
             >
               {a.signOut}
             </button>
+          )}
+          {mode === "cloud" && (
+            <Link href="/admin/messages" className="quiet">
+              {a.conversations}
+            </Link>
           )}
           <LangToggle lang={lang} onChange={(l) => updateSettings({ lang: l })} />
         </div>
@@ -256,6 +260,8 @@ export default function Admin() {
           people={people}
           lang={lang}
           isNew={!people.some((x) => x.id === editing.id)}
+          mode={mode}
+          player={playerName(settings)}
           onSave={save}
           onDelete={remove}
           onClose={() => setEditing(null)}
@@ -270,6 +276,8 @@ function Editor({
   people,
   lang,
   isNew,
+  mode,
+  player,
   onSave,
   onDelete,
   onClose,
@@ -278,6 +286,8 @@ function Editor({
   people: Person[];
   lang: Lang;
   isNew: boolean;
+  mode: Mode;
+  player: string;
   onSave: (p: Person, voice: VoiceChange) => Promise<void>;
   onDelete: (p: Person) => Promise<void>;
   onClose: () => void;
@@ -291,6 +301,18 @@ function Editor({
   const [recording, setRecording] = useState(false);
   const [error, setError] = useState("");
   const recorder = useRef<MediaRecorder | null>(null);
+  const [link, setLink] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const makeLink = async (reset: boolean) => {
+    try {
+      const res = await api(`/api/people/${person.id}/link${reset ? "?reset=1" : ""}`, { method: "POST" });
+      setLink(location.origin + (await res.json()).path);
+      setCopied(false);
+    } catch {
+      setError(a.saveFailed);
+    }
+  };
   const others = people.filter((x) => x.id !== p.id);
   const hasVoice = voice ? true : voice === null ? false : !!p.hasVoice;
 
@@ -522,6 +544,46 @@ function Editor({
             )}
           </div>
         </div>
+
+        {mode === "cloud" && !isNew && (
+          <div className="field">
+            <span>{a.link}</span>
+            <small className="help">{a.linkHelp}</small>
+            {link ? (
+              <>
+                <input readOnly dir="ltr" value={link} onFocus={(e) => e.target.select()} />
+                <div className="row start">
+                  <button
+                    className="btn tool"
+                    onClick={async () => {
+                      await navigator.clipboard?.writeText(link).catch(() => undefined);
+                      setCopied(true);
+                    }}
+                  >
+                    {copied ? a.linkCopied : a.linkCopy}
+                  </button>
+                  <a
+                    className="btn tool"
+                    target="_blank"
+                    rel="noreferrer"
+                    href={`https://wa.me/?text=${encodeURIComponent(a.linkText(displayName(person, lang), player, link))}`}
+                  >
+                    {a.linkWhatsApp}
+                  </a>
+                  <button className="link" onClick={() => makeLink(true)}>
+                    {a.linkReset}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="row start">
+                <button className="btn tool" onClick={() => makeLink(false)}>
+                  {a.linkMake}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {error && <p className="msg">{error}</p>}
 
