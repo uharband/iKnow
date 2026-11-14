@@ -1377,3 +1377,16 @@ main {
   color: var(--muted);
   font-size: 15px;
 }
+
+.voicebox {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 6px;
+}
+.voicebox .row {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
