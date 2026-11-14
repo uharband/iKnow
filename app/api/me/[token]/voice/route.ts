@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
-import { memberFromToken } from "@/lib/server/member";
+import { profileTarget } from "@/lib/server/member";
 
 const MAX_VOICE = 4 * 1024 * 1024;
 
@@ -9,7 +9,7 @@ type Ctx = { params: Promise<{ token: string }> };
 /** The member's own voice greeting ("Hi Grandma, it's me…"). A new one replaces the previous one. */
 export async function POST(req: Request, { params }: Ctx) {
   const { token } = await params;
-  const me = await memberFromToken(token);
+  const me = await profileTarget(req, token);
   if (me instanceof NextResponse) return me;
   const mime = (req.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
   const bytes = Buffer.from(await req.arrayBuffer());
@@ -29,9 +29,9 @@ export async function POST(req: Request, { params }: Ctx) {
   return NextResponse.json({ id });
 }
 
-export async function DELETE(_req: Request, { params }: Ctx) {
+export async function DELETE(req: Request, { params }: Ctx) {
   const { token } = await params;
-  const me = await memberFromToken(token);
+  const me = await profileTarget(req, token);
   if (me instanceof NextResponse) return me;
   await me.pool.query(`delete from media where person_id = $1 and kind = 'voice'`, [me.id]);
   return NextResponse.json({ ok: true });

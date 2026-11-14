@@ -1390,3 +1390,40 @@ main {
   flex-wrap: wrap;
   gap: 10px 14px;
 }
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 6px 0 2px;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 46px;
+  padding: 0 20px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 18px;
+}
+.chip.add {
+  border-style: dashed;
+  color: var(--ink-2);
+}
+.chip.on {
+  background: var(--ink);
+  border-color: var(--ink);
+  border-style: solid;
+  color: var(--paper);
+}
+.addchild {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.addchild .row {
+  justify-content: flex-start;
+}
