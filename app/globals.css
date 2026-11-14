@@ -791,3 +791,300 @@ main {
   opacity: 0.5;
   cursor: default;
 }
+
+/* ---------- choosing a game ---------- */
+
+.games {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: min(100%, 460px);
+}
+.gamecard {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 20px 26px;
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  box-shadow: var(--shadow);
+  text-decoration: none;
+  text-align: start;
+  transition: transform 0.15s ease, border-color 0.2s ease;
+}
+.gamecard:first-child {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+.gamecard:active {
+  transform: scale(0.98);
+}
+.gamecard strong {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: clamp(30px, 3.4vw, 38px);
+  line-height: 1.2;
+}
+.gamecard span {
+  font-size: 19px;
+  opacity: 0.78;
+}
+.people .hard {
+  color: var(--brass);
+  font-weight: 500;
+}
+
+/* ---------- family tree game ---------- */
+
+.tree {
+  padding-bottom: 0;
+  gap: 8px;
+}
+.crumb {
+  font-family: var(--serif);
+  font-size: clamp(22px, 2.6vw, 30px);
+  text-align: center;
+}
+.board {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-block: 8px 16px;
+  animation: rise 0.5s ease both;
+  --slot: clamp(64px, min(15vw, 13vh), 124px);
+}
+.tparents {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+}
+.plaque {
+  font-family: var(--serif);
+  font-size: clamp(26px, 3vw, 36px);
+  padding: 10px 22px;
+  border: 1.5px solid var(--brass);
+  border-radius: 12px;
+  background: var(--surface);
+  align-self: center;
+}
+.tline {
+  width: 2px;
+  height: clamp(14px, 3vh, 30px);
+  background: var(--brass);
+  margin-top: 8px;
+}
+.tkids {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px 18px;
+  padding-top: 14px;
+  border-top: 2px solid var(--brass);
+  max-width: 100%;
+}
+.tgroup {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 14px;
+}
+.tgroup.couple {
+  background: rgba(169, 130, 76, 0.1);
+}
+.slot {
+  width: var(--slot);
+  background: none;
+  border: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.slotframe {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  border-radius: 6px;
+  border: 2px dashed var(--line);
+  background: rgba(255, 255, 255, 0.5);
+  display: block;
+  overflow: hidden;
+  transition: border-color 0.2s ease, box-shadow 0.3s ease;
+}
+.slot:not(.filled):active .slotframe {
+  border-color: var(--ink);
+}
+.slot.filled .slotframe {
+  border: 4px solid #fff;
+  box-shadow: var(--shadow);
+  background: #fff;
+}
+.slot.filled:not(.static) .slotframe {
+  animation: settle 0.5s ease both;
+}
+.slot.glow .slotframe {
+  border-style: solid;
+  border-color: var(--brass);
+  box-shadow: 0 0 0 6px rgba(169, 130, 76, 0.22);
+  animation: breathe 1.6s ease-in-out infinite;
+}
+.slotframe img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.slotname {
+  font-family: var(--serif);
+  font-size: clamp(18px, 2vw, 24px);
+  line-height: 1.15;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.tparents .slot {
+  width: calc(var(--slot) * 0.82);
+}
+
+.traybar {
+  position: sticky;
+  bottom: 0;
+  margin-inline: calc(-1 * clamp(16px, 3vw, 40px));
+  padding: 14px clamp(16px, 3vw, 40px) max(16px, env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -8px 24px -16px rgba(30, 38, 56, 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.trayhead {
+  min-height: 34px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+.traybar .msg {
+  text-align: center;
+}
+.msg.good {
+  color: var(--green);
+  font-weight: 500;
+}
+.tray {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.trayphoto {
+  width: clamp(68px, min(11vw, 12vh), 128px);
+  aspect-ratio: 4 / 5;
+  padding: 5px;
+  border-radius: 6px;
+  border: 0;
+  background: #fff;
+  box-shadow: var(--shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.trayphoto img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.trayphoto.on {
+  transform: translateY(-10px) scale(1.06);
+  box-shadow:
+    0 0 0 3px var(--brass),
+    var(--shadow);
+}
+.branches {
+  margin: 20px 0 28px;
+}
+@keyframes settle {
+  from {
+    opacity: 0;
+    transform: scale(1.12);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (max-width: 560px) {
+  .tkids {
+    gap: 8px 6px;
+  }
+  .tgroup {
+    padding: 5px;
+    gap: 5px;
+  }
+  .board {
+    --slot: clamp(64px, 20vw, 84px);
+  }
+  .trayhint {
+    flex-basis: 100%;
+    min-height: 52px;
+  }
+  .gamecard {
+    padding: 16px 20px;
+  }
+}
+
+/* On a wide screen the photos wait in a panel beside the tree, so the whole tree stays in view. */
+@media (orientation: landscape) and (min-width: 900px) {
+  .tree {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(280px, 28vw, 360px);
+    grid-template-rows: auto minmax(0, 1fr);
+    column-gap: clamp(16px, 3vw, 40px);
+    padding-bottom: clamp(16px, 3vw, 40px);
+  }
+  .tree .topbar {
+    grid-column: 1 / -1;
+  }
+  .board {
+    --slot: clamp(72px, min(8.5vw, 15vh), 132px);
+  }
+  .traybar {
+    position: static;
+    margin: 0;
+    padding: 24px 20px;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+    justify-content: center;
+    gap: 20px;
+  }
+  .trayhead {
+    min-height: 96px;
+    justify-content: flex-end;
+  }
+  .tray {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    width: 100%;
+    justify-items: center;
+  }
+  .trayphoto {
+    width: min(100%, 17vh, 150px);
+  }
+  .trayhint {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+  .traybar .row {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+}

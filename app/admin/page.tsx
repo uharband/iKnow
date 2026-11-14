@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Icon, LangToggle } from "@/components/ui";
+import { HARD_THRESHOLD } from "@/lib/game";
 import { displayName, partnerOf, relationLabel } from "@/lib/i18n";
+import { buildTree } from "@/lib/tree";
 import { playBlob } from "@/lib/speech";
 import { loadVoice, useFamily, useSettings, type VoiceChange } from "@/lib/store";
 import type { Gender, Lang, Person, Relation } from "@/lib/types";
@@ -13,6 +15,9 @@ const A = {
     title: "המשפחה",
     back: "חזרה",
     signOut: "יציאה",
+    hard: "כדאי לחזק",
+    hardNote: "הסימון ״כדאי לחזק״ מופיע ליד מי שהיה קשה יותר לזהות לאחרונה. המשחק מציג אותם מעט יותר.",
+    notInTree: "לא מופיעים במשחק עץ המשפחה, כי לא הוגדרו להם הורים או בן זוג:",
     add: "הוספת בן משפחה",
     local: "בגרסה הזו התמונות והשמות נשמרים רק במכשיר הזה.",
     demo: "זו משפחה לדוגמה, כדי שאפשר יהיה לנסות את המשחק. אפשר להסיר אותה ולהוסיף את המשפחה שלכם.",
@@ -63,6 +68,9 @@ const A = {
     title: "The family",
     back: "Back",
     signOut: "Sign out",
+    hard: "Worth reinforcing",
+    hardNote: "“Worth reinforcing” marks people who were harder to recognise lately. The game shows them a little more often.",
+    notInTree: "Not shown in the family tree game, because no parents or partner are set:",
     add: "Add a family member",
     local: "In this version, photos and names are stored on this device only.",
     demo: "This is a sample family so you can try the game. You can remove it and add your own.",
@@ -157,6 +165,7 @@ export default function Admin() {
 
   if (!people) return <main className="admin" />;
   const hasDemo = people.some((p) => p.demo);
+  const unplaced = buildTree(people).unplaced;
 
   const save = async (p: Person, voice: VoiceChange) => {
     await savePerson(p, voice);
@@ -209,6 +218,13 @@ export default function Admin() {
         </p>
       )}
 
+      {unplaced.length > 0 && (
+        <p className="notice">
+          {a.notInTree} {unplaced.map((p) => displayName(p, lang)).join(", ")}
+        </p>
+      )}
+      {people.some((p) => (p.difficulty ?? 0) >= HARD_THRESHOLD) && <p className="notice">{a.hardNote}</p>}
+
       <label className="field inline">
         <span>{a.player}</span>
         <input
@@ -227,6 +243,7 @@ export default function Admin() {
               </div>
               <strong>{displayName(p, lang)}</strong>
               <small>{relationLabel(p, lang)}</small>
+              {(p.difficulty ?? 0) >= HARD_THRESHOLD && <small className="hard">{a.hard}</small>}
             </button>
           </li>
         ))}

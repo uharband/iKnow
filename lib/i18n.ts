@@ -6,6 +6,19 @@ const he = {
   evening: "ערב טוב",
   night: "לילה טוב",
   homeSub: "בואי ניפגש עם המשפחה",
+  choose: "במה נשחק היום?",
+  treePick: "בחרי תמונה, ואחר כך את המקום שלה בעץ",
+  treePlace: "עכשיו בחרי את המקום בעץ",
+  treePickFirst: "קודם בוחרים תמונה מלמטה.",
+  treeTryOther: "כמעט. אפשר לנסות מקום אחר.",
+  treeShown: "המקום מסומן בעץ.",
+  treeFamilyOf: (n: string) => `המשפחה של ${n}`,
+  treeUnitDone: "יפה מאוד. כולם במקומם.",
+  treeAllDone: "העץ שלם",
+  treeContinue: "לאן ממשיכים?",
+  treeEmpty: "כדי לבנות את העץ צריך להגדיר מי הילדים, ולכל נכד ונין מי ההורים שלו.",
+  showPlace: "הראי לי את המקום",
+  and: " ו",
   start: "נתחיל",
   manage: "ניהול המשפחה",
   finish: "סיום",
@@ -38,6 +51,19 @@ const en: typeof he = {
   evening: "Good evening",
   night: "Good night",
   homeSub: "Let's visit with the family",
+  choose: "What shall we play today?",
+  treePick: "Choose a photo, then its place in the tree",
+  treePlace: "Now choose the place in the tree",
+  treePickFirst: "First choose a photo from below.",
+  treeTryOther: "Almost. Try another place.",
+  treeShown: "The place is marked in the tree.",
+  treeFamilyOf: (n: string) => `${n}’s family`,
+  treeUnitDone: "Very good. Everyone is in place.",
+  treeAllDone: "The tree is complete",
+  treeContinue: "Where to next?",
+  treeEmpty: "To build the tree, mark who the children are, and set the parents of each grandchild and great-grandchild.",
+  showPlace: "Show me the place",
+  and: " and ",
   start: "Begin",
   manage: "Manage family",
   finish: "Finish",
@@ -149,6 +175,16 @@ export function parentPhrase(p: Person, all: Person[], lang: Lang): string | nul
     return `${names.join(" and ")}’s ${p.gender === "f" ? "daughter" : "son"}`;
   }
   return `${p.gender === "f" ? "הבת" : "הבן"} של ${names.join(" ו")}`;
+}
+
+/** The ladder of hints for one person, gentlest first. Shared by every game. */
+export function hintsFor(p: Person, all: Person[], lang: Lang): string[] {
+  return [
+    relationPhrase(p, all, lang),
+    parentPhrase(p, all, lang),
+    partnerPhrase(p, all, lang),
+    t(lang).startsWith(displayName(p, lang)[0]),
+  ].filter((x): x is string => !!x);
 }
 
 export function whoQuestion(p: Person, lang: Lang): string {

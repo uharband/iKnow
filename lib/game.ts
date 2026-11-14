@@ -21,7 +21,9 @@ export function buildRound(people: Person[], size = 6): Person[] {
   const now = Date.now();
   const need = (p: Person) => {
     const days = p.lastSeen ? Math.min((now - p.lastSeen) / 86_400_000, 7) : 7;
-    return (MAX_LEVEL - p.level) * 2 + days * 0.5 + Math.random() * 3;
+    // The difficulty term is a gentle lean, deliberately smaller than the random spread,
+    // so a hard face returns a little more often without the round feeling repetitive.
+    return (MAX_LEVEL - p.level) * 2 + days * 0.5 + (p.difficulty ?? 0) * 2.5 + Math.random() * 3;
   };
   const picked = shuffle(pool)
     .sort((a, b) => need(b) - need(a))
@@ -48,12 +50,20 @@ export function optionsFor(target: Person, people: Person[]): Person[] {
   return shuffle([target, ...sorted.slice(0, count - 1)]);
 }
 
+export { shuffle };
+
 export type Outcome = "clean" | "helped" | "revealed";
+
+/** Above this, a person is quietly marked in the family screen as worth reinforcing. */
+export const HARD_THRESHOLD = 0.3;
+
+const STRUGGLE: Record<Outcome, number> = { clean: 0, helped: 0.5, revealed: 1 };
 
 export function applyOutcome(p: Person, outcome: Outcome): Person {
   const delta = outcome === "clean" ? 1 : outcome === "revealed" ? -1 : 0;
   return {
     ...p,
+    difficulty: Math.round(((p.difficulty ?? 0) * 0.7 + STRUGGLE[outcome] * 0.3) * 1000) / 1000,
     level: Math.max(0, Math.min(MAX_LEVEL, p.level + delta)),
     seen: p.seen + 1,
     lastSeen: Date.now(),

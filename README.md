@@ -7,6 +7,7 @@ A gentle web game that helps a grandmother in the early stages of dementia pract
 ## What is here
 
 - `/` – home screen for the player
+- `/tree` – the family tree game: place each photo in its spot, one household at a time
 - `/play` – the "Who is this?" round: choose or say the name, with a ladder of hints and no failure states
 - `/admin` – add family members, photos and voice greetings
 
