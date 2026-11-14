@@ -30,6 +30,11 @@ export interface Person {
   /** Quiet confidence level 0..3, never shown to the player. */
   level: number;
   seen: number;
+  /**
+   * 0..1, how hard this person has recently been to recall, across all games.
+   * A decaying average, so old struggles fade and a good week lowers it again.
+   */
+  difficulty?: number;
   lastSeen?: number;
   demo?: boolean;
 }

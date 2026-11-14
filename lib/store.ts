@@ -204,7 +204,7 @@ export function useFamily() {
       }
       setPeople(next);
       familyP = null;
-      api(`/api/people/${p.id}/stats`, json("POST", { level: p.level, seen: p.seen, lastSeen: p.lastSeen })).catch(
+      api(`/api/people/${p.id}/stats`, json("POST", { level: p.level, seen: p.seen, lastSeen: p.lastSeen, difficulty: p.difficulty ?? 0 })).catch(
         () => undefined,
       );
     },

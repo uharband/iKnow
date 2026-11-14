@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Frame, LangToggle } from "@/components/ui";
+import { GAMES } from "@/lib/games";
 import { greeting, t } from "@/lib/i18n";
 import { playerName, useFamily, useSettings } from "@/lib/store";
 
@@ -26,11 +27,16 @@ export default function Home() {
         <p className="eyebrow">{hour !== null ? greeting(settings.lang, hour) : " "}</p>
         <h1>{playerName(settings)}</h1>
         <div className="rule" />
-        <p className="lead">{withPhotos.length || !people ? s.homeSub : s.empty}</p>
+        <p className="lead">{withPhotos.length || !people ? s.choose : s.empty}</p>
         {withPhotos.length || !people ? (
-          <Link href="/play" className="btn primary xl">
-            {s.start}
-          </Link>
+          <nav className="games">
+            {GAMES.map((g) => (
+              <Link key={g.id} href={g.href} className="gamecard">
+                <strong>{g.title[settings.lang]}</strong>
+                <span>{g.description[settings.lang]}</span>
+              </Link>
+            ))}
+          </nav>
         ) : (
           <Link href="/admin" className="btn primary xl">
             {s.emptyCta}
