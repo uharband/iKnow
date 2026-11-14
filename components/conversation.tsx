@@ -6,7 +6,7 @@ import { speak } from "@/lib/speech";
 import type { Lang } from "@/lib/types";
 import { Icon } from "./ui";
 
-function VoiceBubble({ url, lang }: { url: string; lang: Lang }) {
+export function VoiceBubble({ url, lang, label }: { url: string; lang: Lang; label?: string }) {
   const m = chatStrings(lang);
   const [playing, setPlaying] = useState(false);
   const audio = useRef<HTMLAudioElement | null>(null);
@@ -27,7 +27,7 @@ function VoiceBubble({ url, lang }: { url: string; lang: Lang }) {
   return (
     <button className={`voice ${playing ? "live" : ""}`} onClick={toggle}>
       <Icon name={playing ? "close" : "play"} />
-      {playing ? m.stop : m.voiceMsg}
+      {playing ? m.stop : (label ?? m.voiceMsg)}
     </button>
   );
 }

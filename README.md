@@ -11,7 +11,7 @@ A gentle web game that helps a grandmother in the early stages of dementia pract
 - `/play` – the "Who is this?" round: choose or say the name, with a ladder of hints and no failure states
 - `/family` – messages: she picks a face, listens or reads, and answers by voice or by typing
 - `/admin` – add family members, photos and voice greetings; create each person's personal link; read all conversations
-- `/me/<token>` – a family member's personal link (no sign-in): their own conversation with her, and their own photos, nicknames and short note
+- `/me/<token>` – a family member's personal link (no sign-in): their own conversation with her, and their own photos, voice greeting, nicknames and short note
 
 Hebrew (default) and English.
 

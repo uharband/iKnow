@@ -13,7 +13,7 @@ export async function GET(req: Request, { params }: Ctx) {
   if (me instanceof NextResponse) return me;
   const base = `/api/me/${token}/media`;
   const media = await me.pool.query(
-    `select id from media where person_id = $1 and kind = 'photo' order by created_at`,
+    `select id, kind from media where person_id = $1 order by created_at`,
     [me.id],
   );
   const settings = await me.pool.query(`select key, value from settings where key in ('playerHe', 'playerEn')`);
@@ -21,6 +21,7 @@ export async function GET(req: Request, { params }: Ctx) {
   // Reading the conversation is what marks the player's messages as read.
   if (!new URL(req.url).searchParams.get("peek")) await markRead(me.pool, me.id, true);
   const d = me.data;
+  const voice = media.rows.find((m) => m.kind === "voice");
   return NextResponse.json({
     person: {
       id: me.id,
@@ -30,7 +31,8 @@ export async function GET(req: Request, { params }: Ctx) {
       nicknames: d.nicknames ?? [],
       note: d.note ?? "",
       noteEn: d.noteEn ?? "",
-      photos: media.rows.map((m) => `${base}/${m.id}`),
+      photos: media.rows.filter((m) => m.kind === "photo").map((m) => `${base}/${m.id}`),
+      voiceUrl: voice ? `${base}/${voice.id}` : null,
     },
     player: { he: names.playerHe ?? "סבתא", en: names.playerEn ?? "Grandma" },
     messages: await listMessages(me.pool, me.id, (id) => `${base}/${id}`),

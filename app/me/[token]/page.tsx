@@ -1,16 +1,16 @@
 "use client";
 
-import { use, useCallback, useEffect, useState } from "react";
-import { Conversation } from "@/components/conversation";
+import { use, useCallback, useEffect, useMemo, useState } from "react";
+import { Conversation, VoiceBubble } from "@/components/conversation";
 import { Icon, LangToggle } from "@/components/ui";
-import { chatStrings, type Msg } from "@/lib/chat";
+import { chatStrings, useRecorder, type Msg } from "@/lib/chat";
 import { toPortrait } from "@/lib/photo";
 import { useSettings } from "@/lib/store";
 
 const REFRESH_MS = 20_000;
 
 interface Me {
-  person: { id: string; name: string; nameEn: string; gender: "f" | "m"; nicknames: string[]; note: string; noteEn: string; photos: string[] };
+  person: { id: string; name: string; nameEn: string; gender: "f" | "m"; nicknames: string[]; note: string; noteEn: string; photos: string[]; voiceUrl: string | null };
   player: { he: string; en: string };
   messages: Msg[];
 }
@@ -24,6 +24,19 @@ const T = {
     photos: "התמונות שלי",
     photosHelp: (n: string) => `התמונות האלה מופיעות ל${n} במשחקים. תמונה עדכנית וברורה של הפנים עוזרת לה לזהות.`,
     addPhoto: "הוספת תמונה",
+    voice: (n: string) => `הפנייה האישית שלי ל${n}`,
+    voiceHelp: (n: string) => `הקלטה קצרה בקול שלך, למשל ״היי ${n}, זה אני…״. היא שומעת אותה אחרי שהיא מזהה אותך.`,
+    voicePlay: "להשמיע את ההקלטה",
+    voiceNew: "להשמיע את ההקלטה החדשה",
+    record: "הקלטה",
+    recordAgain: "הקלטה מחדש",
+    stopRec: "מקליט… לחיצה לסיום",
+    importVoice: "בחירת קובץ הקלטה",
+    keep: "שמירת ההקלטה",
+    discard: "ביטול",
+    removeVoice: "מחיקת ההקלטה",
+    voiceTooBig: "ההקלטה גדולה מדי (עד 4MB). פנייה קצרה מספיקה.",
+    noMic: "אין גישה למיקרופון. אפשר לאשר אותה בדפדפן, או לבחור קובץ הקלטה.",
     nick: "כינויים (מופרדים בפסיק)",
     nickHelp: (n: string) => `שמות ש${n} קוראת לך בהם. גם הם ייחשבו כתשובה נכונה.`,
     note: "משפט קצר עליי",
@@ -44,6 +57,19 @@ const T = {
     photos: "My photos",
     photosHelp: (n: string) => `${n} sees these photos in the games. A recent, clear photo of your face helps her recognise you.`,
     addPhoto: "Add a photo",
+    voice: (n: string) => `My greeting to ${n}`,
+    voiceHelp: (n: string) => `A short recording in your own voice, such as “Hi ${n}, it's me…”. She hears it after she recognises you.`,
+    voicePlay: "Play the recording",
+    voiceNew: "Play the new recording",
+    record: "Record",
+    recordAgain: "Record again",
+    stopRec: "Recording… tap to finish",
+    importVoice: "Choose a recording file",
+    keep: "Save the recording",
+    discard: "Cancel",
+    removeVoice: "Delete recording",
+    voiceTooBig: "The recording is too large (up to 4MB). A short greeting is enough.",
+    noMic: "No access to the microphone. Allow it in the browser, or choose a recording file.",
     nick: "Nicknames (comma separated)",
     nickHelp: (n: string) => `Names ${n} calls you. They also count as a correct answer.`,
     note: "A short line about me (Hebrew)",
@@ -75,6 +101,10 @@ export default function MePage({ params }: { params: Promise<{ token: string }> 
   const [noteEn, setNoteEn] = useState("");
   const [status, setStatus] = useState<{ text: string; good?: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
+  const recorder = useRecorder();
+  const draft = recorder.blob;
+  const draftUrl = useMemo(() => (draft ? URL.createObjectURL(draft) : null), [draft]);
+  useEffect(() => () => void (draftUrl && URL.revokeObjectURL(draftUrl)), [draftUrl]);
 
   const load = useCallback(
     async (fillForm = false) => {
@@ -148,6 +178,16 @@ export default function MePage({ params }: { params: Promise<{ token: string }> 
       return last;
     });
 
+  const MAX_VOICE = 4 * 1024 * 1024;
+  const saveVoice = async (blob: Blob) => {
+    if (blob.size > MAX_VOICE) {
+      setStatus({ text: t.voiceTooBig });
+      return;
+    }
+    await run(() => fetch(`${base}/voice`, { method: "POST", headers: { "Content-Type": blob.type || "audio/ogg" }, body: blob }));
+    recorder.clear();
+  };
+
   const saveProfile = () =>
     run(() =>
       fetch(`${base}/profile`, {
@@ -220,6 +260,63 @@ export default function MePage({ params }: { params: Promise<{ token: string }> 
                   }}
                 />
               </label>
+            </div>
+          </div>
+          <div className="field">
+            <span>{t.voice(player)}</span>
+            <small className="help">{t.voiceHelp(player)}</small>
+            <div className="voicebox">
+              {recorder.recording ? (
+                <button className="btn primary live" onClick={recorder.stop}>
+                  <Icon name="mic" />
+                  {t.stopRec}
+                </button>
+              ) : draft && draftUrl ? (
+                <>
+                  <VoiceBubble key={draftUrl} url={draftUrl} lang={lang} label={t.voiceNew} />
+                  <div className="row">
+                    <button className="btn primary" disabled={busy} onClick={() => saveVoice(draft)}>
+                      {t.keep}
+                    </button>
+                    <button className="btn" disabled={busy} onClick={recorder.start}>
+                      {t.recordAgain}
+                    </button>
+                    <button className="link" disabled={busy} onClick={recorder.clear}>
+                      {t.discard}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {me.person.voiceUrl && <VoiceBubble key={me.person.voiceUrl} url={me.person.voiceUrl} lang={lang} label={t.voicePlay} />}
+                  <div className="row">
+                    <button className="btn tool" disabled={busy} onClick={recorder.start}>
+                      <Icon name="mic" />
+                      {me.person.voiceUrl ? t.recordAgain : t.record}
+                    </button>
+                    <label className="btn tool">
+                      <Icon name="upload" />
+                      {t.importVoice}
+                      <input
+                        type="file"
+                        accept="audio/*,.opus,.ogg,.oga,.m4a,.mp3,.wav,.aac,.amr,.webm"
+                        hidden
+                        onChange={(e) => {
+                          const f = e.target.files?.[0];
+                          e.target.value = "";
+                          if (f) saveVoice(f);
+                        }}
+                      />
+                    </label>
+                    {me.person.voiceUrl && (
+                      <button className="link" disabled={busy} onClick={() => run(() => fetch(`${base}/voice`, { method: "DELETE" }))}>
+                        {t.removeVoice}
+                      </button>
+                    )}
+                  </div>
+                </>
+              )}
+              {recorder.denied && <p className="msg">{t.noMic}</p>}
             </div>
           </div>
           <label className="field">
