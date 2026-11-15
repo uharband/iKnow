@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
-import { memberFromToken } from "@/lib/server/member";
+import { profileTarget } from "@/lib/server/member";
 
 const PHOTO_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_PHOTO = 1.5 * 1024 * 1024;
@@ -8,7 +8,7 @@ const MAX_PHOTOS_PER_PERSON = 10;
 
 export async function POST(req: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  const me = await memberFromToken(token);
+  const me = await profileTarget(req, token);
   if (me instanceof NextResponse) return me;
   const mime = (req.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
   const bytes = Buffer.from(await req.arrayBuffer());

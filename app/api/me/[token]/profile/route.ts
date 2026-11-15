@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { memberFromToken } from "@/lib/server/member";
+import { profileTarget } from "@/lib/server/member";
 
 const text = (v: unknown, max: number) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
 /** A family member may update only the parts of their profile that change over time. */
 export async function PUT(req: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
-  const me = await memberFromToken(token);
+  const me = await profileTarget(req, token);
   if (me instanceof NextResponse) return me;
   const b = (await req.json().catch(() => ({}))) as Record<string, unknown>;
   const patch = {
