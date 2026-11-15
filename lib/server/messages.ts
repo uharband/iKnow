@@ -6,13 +6,16 @@ import type { Pool } from "pg";
 
 export const MAX_TEXT = 2000;
 export const MAX_VOICE_BYTES = 4 * 1024 * 1024;
+/** Photos are shrunk in the browser before they are sent; anything larger is refused, to keep the database small. */
+export const MAX_PHOTO_BYTES = 400 * 1024;
 
 export type Incoming =
   | { kind: "text"; body: string }
   | { kind: "voice"; mime: string; bytes: Buffer }
+  | { kind: "photo"; mime: string; bytes: Buffer }
   | { error: string; status: number };
 
-/** A message arrives either as JSON `{ text }` or as the raw bytes of a recording. */
+/** A message arrives as JSON `{ text }`, as the raw bytes of a recording, or as a JPEG photo. */
 export async function readIncoming(req: Request): Promise<Incoming> {
   const mime = (req.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
   if (mime === "application/json") {
@@ -26,6 +29,12 @@ export async function readIncoming(req: Request): Promise<Incoming> {
     if (bytes.length > MAX_VOICE_BYTES) return { error: "size", status: 413 };
     return { kind: "voice", mime, bytes };
   }
+  if (mime === "image/jpeg") {
+    const bytes = Buffer.from(await req.arrayBuffer());
+    if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8 || bytes[2] !== 0xff) return { error: "type", status: 400 };
+    if (bytes.length > MAX_PHOTO_BYTES) return { error: "size", status: 413 };
+    return { kind: "photo", mime, bytes };
+  }
   return { error: "type", status: 400 };
 }
 
@@ -34,12 +43,12 @@ export async function insertMessage(pool: Pool, personId: string, fromPlayer: bo
   const id = randomUUID();
   await pool.query(
     `insert into messages (id, person_id, from_player, kind, body, mime, bytes) values ($1, $2, $3, $4, $5, $6, $7)`,
-    [id, personId, fromPlayer, m.kind, m.kind === "text" ? m.body : null, m.kind === "voice" ? m.mime : null, m.kind === "voice" ? m.bytes : null],
+    [id, personId, fromPlayer, m.kind, m.kind === "text" ? m.body : null, m.kind === "text" ? null : m.mime, m.kind === "text" ? null : m.bytes],
   );
   return id;
 }
 
-export async function listMessages(pool: Pool, personId: string, audioUrl: (id: string) => string) {
+export async function listMessages(pool: Pool, personId: string, mediaUrl: (id: string) => string) {
   const r = await pool.query(
     `select id, from_player, kind, body, created_at, read_at from messages where person_id = $1 order by created_at`,
     [personId],
@@ -47,9 +56,10 @@ export async function listMessages(pool: Pool, personId: string, audioUrl: (id: 
   return r.rows.map((m) => ({
     id: m.id as string,
     fromPlayer: m.from_player as boolean,
-    kind: m.kind as "text" | "voice",
+    kind: m.kind as "text" | "voice" | "photo",
     text: m.body ?? undefined,
-    audioUrl: m.kind === "voice" ? audioUrl(m.id) : undefined,
+    audioUrl: m.kind === "voice" ? mediaUrl(m.id) : undefined,
+    imageUrl: m.kind === "photo" ? mediaUrl(m.id) : undefined,
     at: new Date(m.created_at).getTime(),
     read: !!m.read_at,
   }));
@@ -62,9 +72,10 @@ export const markRead = (pool: Pool, personId: string, writtenByPlayer: boolean)
     writtenByPlayer,
   ]);
 
+/** The recording or the photo of one message. */
 export async function audioResponse(pool: Pool, messageId: string, personId?: string) {
   const r = await pool.query(
-    `select mime, bytes from messages where id = $1 and kind = 'voice' and ($2::text is null or person_id = $2)`,
+    `select mime, bytes from messages where id = $1 and kind in ('voice', 'photo') and ($2::text is null or person_id = $2)`,
     [messageId, personId ?? null],
   );
   if (!r.rowCount) return new Response(null, { status: 404 });

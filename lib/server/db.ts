@@ -35,7 +35,7 @@ create table if not exists messages (
   id text primary key,
   person_id text not null references people(id) on delete cascade,
   from_player boolean not null,
-  kind text not null check (kind in ('text', 'voice')),
+  kind text not null,
   body text,
   mime text,
   bytes bytea,
@@ -43,6 +43,7 @@ create table if not exists messages (
   read_at timestamptz
 );
 create index if not exists messages_person on messages(person_id, created_at);
+alter table messages drop constraint if exists messages_kind_check;
 `;
 
 /** A small shared pool; the tables are created on first use so there is no setup step. */
