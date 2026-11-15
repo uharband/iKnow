@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { chatStrings, formatWhen, useRecorder, type Msg } from "@/lib/chat";
+import { toMessagePhoto } from "@/lib/photo";
 import { speak } from "@/lib/speech";
 import type { Lang } from "@/lib/types";
 import { Icon } from "./ui";
@@ -62,6 +63,21 @@ export function Conversation({
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<{ text: string; good?: boolean } | null>(null);
   const preview = useMemo(() => (recorder.blob ? URL.createObjectURL(recorder.blob) : null), [recorder.blob]);
+  const picker = useRef<HTMLInputElement | null>(null);
+  const [photo, setPhoto] = useState<Blob | null>(null);
+  const photoPreview = useMemo(() => (photo ? URL.createObjectURL(photo) : null), [photo]);
+  const [viewing, setViewing] = useState<string | null>(null);
+
+  // Every photo is shrunk here, in the browser, before it goes anywhere.
+  const pick = async (file: File | undefined) => {
+    if (!file) return;
+    setStatus(null);
+    try {
+      setPhoto(await toMessagePhoto(file));
+    } catch {
+      setStatus({ text: m.photoFailed });
+    }
+  };
 
   useEffect(() => {
     end.current?.scrollIntoView({ block: "end" });
@@ -76,6 +92,7 @@ export function Conversation({
       setText("");
       setWriting(false);
       recorder.clear();
+      setPhoto(null);
       setStatus({ text: m.sent, good: true });
     } catch {
       setStatus({ text: m.failed });
@@ -92,7 +109,16 @@ export function Conversation({
           return (
             <div key={msg.id} className={`bubble ${mine ? "mine" : "theirs"}`}>
               {readOnly && <small className="who">{msg.fromPlayer ? names.player : names.member}</small>}
-              {msg.kind === "text" ? <p>{msg.text}</p> : <VoiceBubble url={msg.audioUrl!} lang={lang} />}
+              {msg.kind === "text" ? (
+                <p>{msg.text}</p>
+              ) : msg.kind === "photo" ? (
+                <button className="photomsg" onClick={() => setViewing(msg.imageUrl!)} aria-label={m.photoMsg}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={msg.imageUrl} alt={m.photoMsg} loading="lazy" />
+                </button>
+              ) : (
+                <VoiceBubble url={msg.audioUrl!} lang={lang} />
+              )}
               <span className="meta">
                 {big && !mine && msg.kind === "text" && (
                   <button className="link" onClick={() => speak(msg.text ?? "", lang)}>
@@ -126,6 +152,18 @@ export function Conversation({
                 {busy ? m.sending : m.send}
               </button>
               <button className="btn ghost" disabled={busy} onClick={recorder.clear}>
+                {m.discard}
+              </button>
+            </div>
+          ) : photo ? (
+            <div className="row">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {photoPreview && <img className="photopreview" src={photoPreview} alt={m.photoReady} />}
+              <span className="msg good">{m.photoReady}</span>
+              <button className="btn primary" disabled={busy} onClick={() => send(photo)}>
+                {busy ? m.sending : m.send}
+              </button>
+              <button className="btn ghost" disabled={busy} onClick={() => setPhoto(null)}>
                 {m.discard}
               </button>
             </div>
@@ -175,8 +213,29 @@ export function Conversation({
               >
                 {m.write}
               </button>
+              <button className="btn" onClick={() => picker.current?.click()}>
+                {m.photo}
+              </button>
+              <input
+                ref={picker}
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={(e) => {
+                  pick(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
+              />
             </div>
           )}
+        </div>
+      )}
+
+      {viewing && (
+        <div className="photoview" role="dialog" aria-modal="true" onClick={() => setViewing(null)}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={viewing} alt={m.photoMsg} />
+          <button className="btn">{m.close}</button>
         </div>
       )}
     </div>

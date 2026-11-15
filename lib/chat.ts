@@ -6,9 +6,10 @@ import type { Lang } from "./types";
 export interface Msg {
   id: string;
   fromPlayer: boolean;
-  kind: "text" | "voice";
+  kind: "text" | "voice" | "photo";
   text?: string;
   audioUrl?: string;
+  imageUrl?: string;
   at: number;
   read: boolean;
 }
@@ -34,6 +35,11 @@ const M = {
     empty: (n: string) => `עדיין אין הודעות עם ${n}. אפשר לשלוח את הראשונה.`,
     record: "להקליט הודעה",
     write: "לכתוב הודעה",
+    photo: "לשלוח תמונה",
+    photoReady: "התמונה מוכנה",
+    photoFailed: "לא הצלחנו לפתוח את התמונה הזאת. אפשר לנסות תמונה אחרת.",
+    photoMsg: "תמונה",
+    close: "סגירה",
     recording: "מקליטים… לסיום נוגעים שוב",
     ready: "ההודעה מוכנה",
     send: "שליחה",
@@ -67,6 +73,11 @@ const M = {
     empty: (n: string) => `No messages with ${n} yet. You can send the first one.`,
     record: "Record a message",
     write: "Write a message",
+    photo: "Send a photo",
+    photoReady: "The photo is ready",
+    photoFailed: "This photo could not be opened. Please try another one.",
+    photoMsg: "Photo",
+    close: "Close",
     recording: "Recording… touch again to finish",
     ready: "The message is ready",
     send: "Send",
