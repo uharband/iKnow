@@ -1700,3 +1700,26 @@ main {
   background: var(--brass);
   opacity: 0.4;
 }
+
+/* ---------- manager: deleting conversations ---------- */
+.convlist li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 16px;
+}
+.convlist li > a {
+  flex: 1 1 320px;
+}
+.link.danger,
+.dangerzone .btn {
+  color: #8a3b2e;
+}
+.dangerzone {
+  margin-top: 28px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.dangerzone .btn {
+  border-color: #c9a59c;
+}
