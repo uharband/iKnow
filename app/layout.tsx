@@ -5,7 +5,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "iKnow",
-  description: "משחק עדין לזיהוי בני המשפחה",
+  description: "שומרים על קשר",
   appleWebApp: { capable: true, title: "iKnow" },
 };
 
