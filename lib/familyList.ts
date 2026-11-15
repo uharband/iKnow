@@ -105,7 +105,8 @@ export interface PlannedPerson extends ListedPerson {
 /**
  * Decide, for every listed person, whether they are already in the family.
  * A match needs the same name and a place that fits (same parent or partner),
- * or a name that is unique both in the list and in the family.
+ * or a name that is unique both in the list and in the family, or unique
+ * there among people of the same relation.
  */
 export function planImport(list: ListedPerson[], family: Person[], newId: () => string): PlannedPerson[] {
   const norm = (s: string) => s.replace(/\s+/g, " ").trim();
@@ -122,7 +123,13 @@ export function planImport(list: ListedPerson[], family: Person[], newId: () => 
     const fits =
       same.find((f) => f.parentIds.some((id) => parentIds.includes(id))) ??
       (mate ? same.find((f) => f.partnerId === mate.id || mate.partnerId === f.id) : undefined);
-    const existing = fits ?? (same.length === 1 && listed.get(norm(p.name)) === 1 ? same[0] : undefined);
+    // Two people may share a name (an aunt and a niece's husband, say); their relation tells them apart.
+    const sameKind = same.filter((f) => f.relation === p.relation);
+    const listedKind = list.filter((q) => norm(q.name) === norm(p.name) && q.relation === p.relation).length;
+    const existing =
+      fits ??
+      (same.length === 1 && listed.get(norm(p.name)) === 1 ? same[0] : undefined) ??
+      (sameKind.length === 1 && listedKind === 1 ? sameKind[0] : undefined);
     if (existing) claimed.add(existing.id);
     plan.push({ ...p, id: existing?.id ?? newId(), existing });
   });
