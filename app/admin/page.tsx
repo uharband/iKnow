@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { FamilyTree } from "@/components/familyTree";
 import { Icon, LangToggle } from "@/components/ui";
 import { HARD_THRESHOLD } from "@/lib/game";
 import { displayName, partnerOf, relationLabel } from "@/lib/i18n";
@@ -17,6 +18,9 @@ const A = {
     back: "חזרה",
     signOut: "יציאה",
     conversations: "שיחות",
+    viewTree: "עץ",
+    viewList: "רשימה",
+    viewLabel: "תצוגה",
     importList: "ייבוא רשימה",
     link: "קישור אישי",
     linkHelp: "דרך הקישור בן המשפחה שולח הודעות לסבתא ומעדכן את התמונות והפרטים שלו, בלי סיסמה.",
@@ -80,6 +84,9 @@ const A = {
     back: "Back",
     signOut: "Sign out",
     conversations: "Conversations",
+    viewTree: "Tree",
+    viewList: "List",
+    viewLabel: "View",
     importList: "Import a list",
     link: "Personal link",
     linkHelp: "With this link the family member sends messages to Grandma and updates their own photos and details, without a password.",
@@ -161,12 +168,29 @@ export default function Admin() {
   const { settings, update: updateSettings } = useSettings();
   const { people, mode, savePerson, removePerson, removeDemo } = useFamily();
   const [editing, setEditing] = useState<Person | null>(null);
+  const [view, setView] = useState<"tree" | "list">("tree");
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("iknow:adminView") === "list") setView("list");
+    } catch {
+      // The tree is the default when nothing was remembered.
+    }
+  }, []);
+  const chooseView = (v: "tree" | "list") => {
+    setView(v);
+    try {
+      localStorage.setItem("iknow:adminView", v);
+    } catch {
+      // Not remembering the choice is fine.
+    }
+  };
   const lang = settings.lang;
   const a = A[lang];
 
   if (!people) return <main className="admin" />;
   const hasDemo = people.some((p) => p.demo);
-  const unplaced = buildTree(people).unplaced;
+  const tree = buildTree(people);
+  const unplaced = tree.unplaced;
 
   const save = async (p: Person, voice: VoiceChange) => {
     await savePerson(p, voice);
@@ -242,7 +266,18 @@ export default function Admin() {
         />
       </label>
 
-      <ul className="people">
+      <div className="viewpick" role="group" aria-label={a.viewLabel}>
+        <button className={view === "tree" ? "on" : ""} aria-pressed={view === "tree"} onClick={() => chooseView("tree")}>
+          {a.viewTree}
+        </button>
+        <button className={view === "list" ? "on" : ""} aria-pressed={view === "list"} onClick={() => chooseView("list")}>
+          {a.viewList}
+        </button>
+      </div>
+
+      {view === "tree" && <FamilyTree tree={tree} player={playerName(settings)} lang={lang} onEdit={setEditing} />}
+
+      <ul className="people" hidden={view !== "list"}>
         {people.map((p) => (
           <li key={p.id}>
             <button onClick={() => setEditing(p)} aria-label={`${a.edit} ${displayName(p, lang)}`}>
