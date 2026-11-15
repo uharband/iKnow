@@ -17,6 +17,7 @@ const A = {
     back: "חזרה",
     signOut: "יציאה",
     conversations: "שיחות",
+    importList: "ייבוא רשימה",
     link: "קישור אישי",
     linkHelp: "דרך הקישור בן המשפחה שולח הודעות לסבתא ומעדכן את התמונות והפרטים שלו, בלי סיסמה.",
     linkMake: "יצירת קישור",
@@ -79,6 +80,7 @@ const A = {
     back: "Back",
     signOut: "Sign out",
     conversations: "Conversations",
+    importList: "Import a list",
     link: "Personal link",
     linkHelp: "With this link the family member sends messages to Grandma and updates their own photos and details, without a password.",
     linkMake: "Create link",
@@ -195,6 +197,9 @@ export default function Admin() {
               {a.signOut}
             </button>
           )}
+          <Link href="/admin/import" className="quiet">
+            {a.importList}
+          </Link>
           {mode === "cloud" && (
             <Link href="/admin/messages" className="quiet">
               {a.conversations}

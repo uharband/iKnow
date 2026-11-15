@@ -181,6 +181,29 @@ export function useFamily() {
     [people, mode, saveLocal, reload],
   );
 
+  /** Add many new people at once (an imported family list). They carry names and family links only. */
+  const addPeople = useCallback(
+    async (fresh: Person[]) => {
+      if (mode === "local") {
+        const partnerOf = new Map(fresh.filter((p) => p.partnerId).map((p) => [p.partnerId!, p.id]));
+        await saveLocal([
+          ...(people ?? []).map((x) => (partnerOf.has(x.id) && !x.partnerId ? { ...x, partnerId: partnerOf.get(x.id) } : x)),
+          ...fresh,
+        ]);
+        return;
+      }
+      try {
+        for (const p of fresh) {
+          const { photos: _photos, voiceUrl: _voiceUrl, ...fields } = p;
+          await api(`/api/people/${p.id}`, json("PUT", fields));
+        }
+      } finally {
+        await reload(true);
+      }
+    },
+    [people, mode, saveLocal, reload],
+  );
+
   /** Local mode only: drop the fictional sample family. */
   const removeDemo = useCallback(async () => {
     const keep = (people ?? []).filter((p) => !p.demo);
@@ -211,7 +234,7 @@ export function useFamily() {
     [people, mode, saveLocal],
   );
 
-  return { people, mode, savePerson, removePerson, removeDemo, recordProgress };
+  return { people, mode, savePerson, addPeople, removePerson, removeDemo, recordProgress };
 }
 
 let settingsTimer: ReturnType<typeof setTimeout> | undefined;
