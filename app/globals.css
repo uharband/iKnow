@@ -1671,6 +1671,36 @@ main {
   }
 }
 
+/* ---------- family screen, one household after another ---------- */
+.facegroup {
+  margin-top: 26px;
+}
+.facegroup h2 {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 18px;
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 28px;
+  color: var(--ink);
+}
+.facegroup h2::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--line);
+}
+.facegroup.waiting {
+  padding: 18px 18px 22px;
+  border-radius: 18px;
+  background: var(--brass-soft);
+}
+.facegroup.waiting h2::after {
+  background: var(--brass);
+  opacity: 0.4;
+}
+
 /* ---------- manager: deleting conversations ---------- */
 .convlist li {
   display: flex;
