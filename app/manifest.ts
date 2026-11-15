@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "iKnow",
     short_name: "iKnow",
-    description: "משחק עדין לזיהוי בני המשפחה",
+    description: "שומרים על קשר",
     lang: "he",
     dir: "rtl",
     start_url: "/",
