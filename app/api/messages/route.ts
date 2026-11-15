@@ -45,3 +45,25 @@ export async function POST(req: Request) {
   const id = await insertMessage(pool, person, true, incoming);
   return NextResponse.json({ id });
 }
+
+/**
+ * The manager clears history: `?person=<id>` removes one person's whole
+ * conversation, `?all=1` removes every message. Recordings go with them.
+ * Nothing is deleted without one of the two, so a bare call cannot wipe everything.
+ */
+export async function DELETE(req: Request) {
+  const denied = await guard();
+  if (denied) return denied;
+  const q = new URL(req.url).searchParams;
+  const person = q.get("person");
+  const pool = await db();
+  if (person) {
+    const r = await pool.query(`delete from messages where person_id = $1`, [person]);
+    return NextResponse.json({ deleted: r.rowCount ?? 0 });
+  }
+  if (q.get("all") === "1") {
+    const r = await pool.query(`delete from messages`);
+    return NextResponse.json({ deleted: r.rowCount ?? 0 });
+  }
+  return NextResponse.json({ error: "scope" }, { status: 400 });
+}
