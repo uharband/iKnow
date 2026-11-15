@@ -20,6 +20,7 @@ export default function Play() {
 
   const [queue, setQueue] = useState<Person[] | null>(null);
   const [index, setIndex] = useState(0);
+  const [round, setRound] = useState(0);
   const [options, setOptions] = useState<Person[]>([]);
   const [wrong, setWrong] = useState<string[]>([]);
   const [hints, setHints] = useState(0);
@@ -37,6 +38,7 @@ export default function Play() {
     repeated.current = new Set();
     setQueue(buildRound(from, ROUND_SIZE));
     setIndex(0);
+    setRound((r) => r + 1);
     setMet([]);
   }, []);
 
@@ -46,7 +48,10 @@ export default function Play() {
 
   const target = queue && index < queue.length ? queue[index] : null;
 
-  // A fresh card: new set of names, no hints, no marks.
+  // A fresh card: new set of names, no hints, no marks. This follows the card
+  // (its place in the round), not the queue itself: the queue also changes when
+  // a face that needed help is slipped back in for later, and that must not
+  // wipe the answer that was just given.
   useEffect(() => {
     if (!target || !people) return;
     const live = people.find((p) => p.id === target.id) ?? target;
@@ -56,7 +61,7 @@ export default function Play() {
     setAnswered(null);
     setMessage(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [index, queue]);
+  }, [index, round]);
 
   const hintList = useMemo(() => {
     if (!target || !people) return [];
