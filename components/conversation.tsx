@@ -64,6 +64,9 @@ export function Conversation({
   const [status, setStatus] = useState<{ text: string; good?: boolean } | null>(null);
   const preview = useMemo(() => (recorder.blob ? URL.createObjectURL(recorder.blob) : null), [recorder.blob]);
   const picker = useRef<HTMLInputElement | null>(null);
+  const camera = useRef<HTMLInputElement | null>(null);
+  // On a phone or tablet the gallery picker does not offer the camera, so the two are asked for separately.
+  const [choosing, setChoosing] = useState(false);
   const [photo, setPhoto] = useState<Blob | null>(null);
   const photoPreview = useMemo(() => (photo ? URL.createObjectURL(photo) : null), [photo]);
   const [viewing, setViewing] = useState<string | null>(null);
@@ -71,6 +74,7 @@ export function Conversation({
   // Every photo is shrunk here, in the browser, before it goes anywhere.
   const pick = async (file: File | undefined) => {
     if (!file) return;
+    setChoosing(false);
     setStatus(null);
     try {
       setPhoto(await toMessagePhoto(file));
@@ -139,6 +143,21 @@ export function Conversation({
           {status && <p className={`msg ${status.good ? "good" : ""}`}>{status.text}</p>}
           {recorder.denied && <p className="msg">{m.noMic}</p>}
 
+          {[picker, camera].map((ref) => (
+            <input
+              key={ref === camera ? "camera" : "gallery"}
+              ref={ref}
+              type="file"
+              accept="image/*"
+              capture={ref === camera ? "environment" : undefined}
+              hidden
+              onChange={(e) => {
+                pick(e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
+          ))}
+
           {recorder.recording ? (
             <button className="btn primary live wide" onClick={recorder.stop}>
               <Icon name="mic" />
@@ -153,6 +172,18 @@ export function Conversation({
               </button>
               <button className="btn ghost" disabled={busy} onClick={recorder.clear}>
                 {m.discard}
+              </button>
+            </div>
+          ) : choosing ? (
+            <div className="row">
+              <button className="btn primary" onClick={() => camera.current?.click()}>
+                {m.takePhoto}
+              </button>
+              <button className="btn" onClick={() => picker.current?.click()}>
+                {m.choosePhoto}
+              </button>
+              <button className="btn ghost" onClick={() => setChoosing(false)}>
+                {m.cancel}
               </button>
             </div>
           ) : photo ? (
@@ -213,19 +244,16 @@ export function Conversation({
               >
                 {m.write}
               </button>
-              <button className="btn" onClick={() => picker.current?.click()}>
+              <button
+                className="btn"
+                onClick={() => {
+                  setStatus(null);
+                  if (window.matchMedia("(pointer: coarse)").matches) setChoosing(true);
+                  else picker.current?.click();
+                }}
+              >
                 {m.photo}
               </button>
-              <input
-                ref={picker}
-                type="file"
-                accept="image/*"
-                hidden
-                onChange={(e) => {
-                  pick(e.target.files?.[0]);
-                  e.target.value = "";
-                }}
-              />
             </div>
           )}
         </div>
