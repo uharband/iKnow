@@ -221,6 +221,11 @@ export default function MePage({ params }: { params: Promise<{ token: string }> 
     if (!res.ok) throw new Error(String(res.status));
     await load();
   };
+  const removeMessage = async (id: string) => {
+    const res = await fetch(`${base}/messages/${encodeURIComponent(id)}`, { method: "DELETE" });
+    if (!res.ok) throw new Error(String(res.status));
+    await load();
+  };
 
   const run = async (work: () => Promise<Response>) => {
     setBusy(true);
@@ -324,6 +329,7 @@ export default function MePage({ params }: { params: Promise<{ token: string }> 
           names={{ player, member: myName }}
           emptyText={m.empty(player)}
           onSend={send}
+          onDelete={removeMessage}
         />
       ) : (
         <section className="profile">
