@@ -56,6 +56,10 @@ export default function Chat({ params }: { params: Promise<{ id: string }> }) {
     else await api(url, { method: "POST", headers: { "Content-Type": payload.type || "audio/webm" }, body: payload });
     await load();
   };
+  const remove = async (messageId: string) => {
+    await api(`/api/messages/${encodeURIComponent(messageId)}`, { method: "DELETE" });
+    await load();
+  };
 
   return (
     <main className="chatpage">
@@ -81,6 +85,7 @@ export default function Chat({ params }: { params: Promise<{ id: string }> }) {
         names={{ player: playerName(settings), member: name }}
         emptyText={m.empty(name)}
         onSend={send}
+        onDelete={remove}
       />
     </main>
   );

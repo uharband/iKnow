@@ -42,6 +42,7 @@ export function Conversation({
   names,
   emptyText,
   onSend,
+  onDelete,
 }: {
   messages: Msg[];
   lang: Lang;
@@ -54,6 +55,8 @@ export function Conversation({
   names: { player: string; member: string };
   emptyText: string;
   onSend?: (payload: string | Blob) => Promise<void>;
+  /** Deleting one message removes it for both sides. */
+  onDelete?: (id: string) => Promise<void>;
 }) {
   const m = chatStrings(lang);
   const end = useRef<HTMLDivElement | null>(null);
@@ -70,6 +73,23 @@ export function Conversation({
   const [photo, setPhoto] = useState<Blob | null>(null);
   const photoPreview = useMemo(() => (photo ? URL.createObjectURL(photo) : null), [photo]);
   const [viewing, setViewing] = useState<string | null>(null);
+  // The message that "delete" was touched on; it is deleted only after a second, explicit yes.
+  const [asking, setAsking] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  const remove = async (id: string) => {
+    if (!onDelete) return;
+    setDeleting(true);
+    setStatus(null);
+    try {
+      await onDelete(id);
+      setStatus({ text: m.deleted, good: true });
+    } catch {
+      setStatus({ text: m.deleteFailed });
+    }
+    setAsking(null);
+    setDeleting(false);
+  };
 
   // Every photo is shrunk here, in the browser, before it goes anywhere.
   const pick = async (file: File | undefined) => {
@@ -131,12 +151,34 @@ export function Conversation({
                 )}
                 <time>{formatWhen(msg.at, lang)}</time>
                 {mine && msg.read && !readOnly && <span>· {m.seen}</span>}
+                {onDelete && asking !== msg.id && (
+                  <button className="link delmsg" onClick={() => setAsking(msg.id)}>
+                    {m.deleteMsg}
+                  </button>
+                )}
               </span>
+              {asking === msg.id && (
+                <div className="askdelete" role="alertdialog" aria-label={m.deleteAsk}>
+                  <span>{m.deleteAsk}</span>
+                  <button className="btn danger" disabled={deleting} onClick={() => remove(msg.id)}>
+                    {m.deleteYes}
+                  </button>
+                  <button className="btn ghost" disabled={deleting} onClick={() => setAsking(null)}>
+                    {m.cancel}
+                  </button>
+                </div>
+              )}
             </div>
           );
         })}
         <div ref={end} />
       </div>
+
+      {readOnly && status && (
+        <div className="composer" aria-live="polite">
+          <p className={`msg ${status.good ? "good" : ""}`}>{status.text}</p>
+        </div>
+      )}
 
       {!readOnly && (
         <div className="composer" aria-live="polite">

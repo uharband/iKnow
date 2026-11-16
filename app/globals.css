@@ -1767,3 +1767,39 @@ main {
   border-radius: 8px;
   box-shadow: var(--shadow);
 }
+
+/* ---------- deleting one message ---------- */
+.bubble .meta .delmsg {
+  margin-inline-start: auto;
+  color: var(--muted);
+  font-size: inherit;
+}
+.askdelete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 17px;
+}
+.askdelete span {
+  flex: 1 1 100%;
+}
+.askdelete .btn {
+  min-height: 44px;
+  padding: 0 16px;
+  font-size: 17px;
+}
+.askdelete .btn.danger {
+  color: #8a3b2e;
+  border-color: #c9a59c;
+}
+.chat.big .askdelete {
+  font-size: 22px;
+}
+.chat.big .askdelete .btn {
+  min-height: 60px;
+  padding: 0 22px;
+  font-size: 21px;
+}
