@@ -144,7 +144,9 @@ export default function MePage({ params }: { params: Promise<{ token: string }> 
 
   const [me, setMe] = useState<Me | null>(null);
   const [gone, setGone] = useState(false);
-  const [tab, setTab] = useState<"chat" | "profile">("chat");
+  // The link opens on the profile: that is what most people come to fill in first,
+  // especially children who received it on WhatsApp.
+  const [tab, setTab] = useState<"chat" | "profile">("profile");
   /** Whose profile is open in the profile tab: the member's own (null) or one of their children's. */
   const [who, setWho] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -313,11 +315,11 @@ export default function MePage({ params }: { params: Promise<{ token: string }> 
       </div>
 
       <div className="tabs" role="tablist">
-        <button role="tab" aria-selected={tab === "chat"} className={tab === "chat" ? "on" : ""} onClick={() => setTab("chat")}>
-          {t.tabChat}
-        </button>
         <button role="tab" aria-selected={tab === "profile"} className={tab === "profile" ? "on" : ""} onClick={() => setTab("profile")}>
           {t.tabProfile}
+        </button>
+        <button role="tab" aria-selected={tab === "chat"} className={tab === "chat" ? "on" : ""} onClick={() => setTab("chat")}>
+          {t.tabChat}
         </button>
       </div>
 
